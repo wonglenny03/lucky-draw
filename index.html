@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Annual Gala Lucky Draw</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a0a0c;
+        color: #fff;
+        font-family: 'Rajdhani', sans-serif;
+        overflow-x: hidden;
+      }
+      .font-orbitron {
+        font-family: 'Orbitron', sans-serif;
+      }
+      /* Custom background animation */
+      .bg-animate {
+        background: linear-gradient(45deg, #0a0a0c 25%, #1a1a2e 50%, #0a0a0c 75%);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+      }
+      @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      .neon-border {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.3), inset 0 0 5px rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+      }
+      .neon-text-gold {
+        text-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+      }
+      /* Scrolling names animation */
+      .scrolling-names {
+        mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-animate">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
