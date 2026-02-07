@@ -44,45 +44,42 @@ const upload = multer({
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// cors 委托写法：传入 (req, cb) 以便拿到 req.headers.host 做同 hostname 判断
 app.use(
-  cors({
-    origin(req, callback) {
-      const origin = req.headers.origin;
-      const host = req.headers.host || "";
-      const corsOriginEnv = process.env.CORS_ORIGIN || "";
-      const allowed = corsOriginEnv
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      let result = null;
-      if (allowed.length > 0) {
-        if (origin && allowed.includes(origin)) result = origin;
-        else result = false;
-      } else {
-        // 未配置 CORS_ORIGIN 时：允许与 API 同 hostname 的任意端口（前后端同机部署）
-        if (origin) {
-          try {
-            const apiHost = host.split(":")[0].replace(/^\[|\]$/g, "");
-            const originHost = new URL(origin).hostname.replace(/^\[|\]$/g, "");
-            if (apiHost && originHost && apiHost === originHost) result = origin;
-          } catch (_) {}
-        }
-        if (result === null)
-          result = process.env.NODE_ENV === "production" ? false : "http://localhost:3000";
-      }
+  cors((req, callback) => {
+    const origin = req?.headers?.origin;
+    const host = req?.headers?.host || "";
+    const corsOriginEnv = process.env.CORS_ORIGIN || "";
+    const allowed = corsOriginEnv
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    let result = false;
+    if (allowed.length > 0) {
+      if (origin && allowed.includes(origin)) result = origin;
+    } else {
+      // 未配置 CORS_ORIGIN 时：允许与 API 同 hostname 的任意端口（前后端同机部署）
       if (origin) {
-        console.log(
-          "[CORS] origin=%s host=%s CORS_ORIGIN=%s allowed=%s result=%s",
-          origin,
-          host,
-          corsOriginEnv || "(empty)",
-          allowed.length ? allowed.join(",") : "(same-host)",
-          result === false ? "deny" : result
-        );
+        try {
+          const apiHost = host.split(":")[0].replace(/^\[|\]$/g, "");
+          const originHost = new URL(origin).hostname.replace(/^\[|\]$/g, "");
+          if (apiHost && originHost && apiHost === originHost) result = origin;
+        } catch (_) {}
       }
-      callback(null, result);
-    },
-    credentials: true,
+      if (result === false && process.env.NODE_ENV !== "production")
+        result = "http://localhost:3000";
+    }
+    if (origin) {
+      console.log(
+        "[CORS] origin=%s host=%s CORS_ORIGIN=%s allowed=%s result=%s",
+        origin,
+        host,
+        corsOriginEnv || "(empty)",
+        allowed.length ? allowed.join(",") : "(same-host)",
+        result === false ? "deny" : result
+      );
+    }
+    callback(null, { origin: result, credentials: true });
   })
 );
 app.use(express.json({ limit: "10mb" }));
