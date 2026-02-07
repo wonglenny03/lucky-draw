@@ -46,7 +46,26 @@ const PORT = process.env.PORT || 3001;
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin(req, callback) {
+      const origin = req.headers.origin;
+      const allowed = (process.env.CORS_ORIGIN || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (allowed.length > 0) {
+        if (origin && allowed.includes(origin)) return callback(null, origin);
+        return callback(null, false);
+      }
+      // 未配置 CORS_ORIGIN 时：允许与 API 同 hostname 的任意端口（前后端同机部署）
+      if (origin) {
+        try {
+          const apiHost = (req.headers.host || "").split(":")[0];
+          const originHost = new URL(origin).hostname;
+          if (apiHost && originHost && apiHost === originHost) return callback(null, origin);
+        } catch (_) {}
+      }
+      callback(null, process.env.NODE_ENV === "production" ? false : "http://localhost:3000");
+    },
     credentials: true,
   })
 );

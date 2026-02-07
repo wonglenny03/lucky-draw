@@ -20,7 +20,8 @@ API_PORT="${API_PORT:-1167}"
 FRONTEND_PORT="${FRONTEND_PORT:-1168}"
 export VITE_API_URL="${VITE_API_URL:-${PUBLIC_API_BASE}}"
 
-echo ">>> 安装前端依赖..."
+echo ">>> 安装前端依赖（清理后重装，避免 Rollup 可选原生依赖未安装）..."
+rm -rf node_modules package-lock.json
 npm install
 
 echo ">>> 安装后端依赖..."

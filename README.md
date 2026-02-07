@@ -59,7 +59,7 @@ chmod +x pm2-start.sh
 ./pm2-start.sh
 ```
 
-- 会依次执行：前端 `npm install` → 后端 `cd server && npm install` → 数据库初始化 → `npm run build`（可设置 `VITE_API_URL`）→ PM2 启动或重启 **lucky-draw-api**（1167）和 **lucky-draw**（1168）。
+- 会依次执行：前端依赖安装（会先清理 `node_modules` 与 `package-lock.json` 再安装，避免 Linux 上 Rollup 原生依赖缺失）→ 后端 `cd server && npm install` → 数据库初始化 → `npm run build`（可设置 `VITE_API_URL`）→ PM2 启动或重启 **lucky-draw-api**（1167）和 **lucky-draw**（1168）。
 - 若两个应用已在 PM2 中，会执行 `pm2 restart lucky-draw-api lucky-draw`；否则执行 `pm2 start ecosystem.config.cjs`。
 
 **可选环境变量：**
@@ -69,6 +69,7 @@ chmod +x pm2-start.sh
 | `VITE_API_URL` | 前端请求的 API 地址（构建时写入） | `http://localhost:1167` |
 | `API_PORT` | 后端 API 监听端口（生产） | `1167` |
 | `FRONTEND_PORT` | 前端静态服务端口（生产） | `1168` |
+| `CORS_ORIGIN` | 允许的前端来源（CORS），多个用逗号分隔；不设时自动允许与 API 同 hostname 的任意端口 | 同机部署可不设 |
 
 部署到公网服务器时，建议先设置 `VITE_API_URL` 为实际 API 地址再执行脚本，例如：
 
@@ -126,3 +127,19 @@ pm2 save      # 保存当前进程列表
 ```
 
 重新部署时：可再次执行 `./pm2-start.sh`（会先构建再重启），或先 `npm run build`，再 `pm2 restart lucky-draw`。
+
+### 故障排除：Linux 上构建报错 `Cannot find module @rollup/rollup-linux-x64-gnu`
+
+这是 npm 对可选依赖的已知问题：若项目在 Mac/Windows 上安装过依赖，在 Linux（如 EC2）上直接 `npm run build` 可能缺少 Rollup 的 Linux 原生包。处理方式：
+
+- **用一键脚本部署**：`./pm2-start.sh` 已改为在安装前端依赖前清理 `node_modules` 与 `package-lock.json`，再执行 `npm install`，可避免该问题。
+- **手动构建**：在服务器项目根目录执行 `rm -rf node_modules package-lock.json && npm install`，再执行 `npm run build`。
+
+### 故障排除：浏览器报 CORS 错误
+
+前端与 API 不同源（不同域名或端口）时，后端会校验请求的 `Origin`。默认会**自动允许与 API 同 hostname 的任意端口**（例如前端 `http://服务器IP:1168`、API `http://服务器IP:1167` 可正常访问）。若前端通过其他域名访问（如 CDN、反向代理后的域名），需在启动 API 时设置 `CORS_ORIGIN` 为前端访问地址，多个用逗号分隔，例如：
+
+```bash
+CORS_ORIGIN=https://your-frontend-domain.com pm2 start ecosystem.config.cjs
+# 或在 pm2-start.sh 前：export CORS_ORIGIN=https://your-frontend-domain.com
+```
