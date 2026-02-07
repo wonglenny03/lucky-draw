@@ -1,17 +1,34 @@
 /**
- * PM2 进程配置文件
- * 用于在服务器上以生产模式运行抽奖应用
+ * PM2 进程配置文件（生产环境）
+ * 前端静态: 1168，后端 API: 1167
  *
- * 使用前请先执行: npm run build
- * 启动: pm2 start ecosystem.config.cjs
+ * 一键部署: ./pm2-start.sh
  */
+
+const path = require('path');
+
+const API_PORT = process.env.API_PORT || 1167;
+const FRONTEND_PORT = process.env.FRONTEND_PORT || 1168;
 
 module.exports = {
   apps: [
     {
+      name: 'lucky-draw-api',
+      script: path.join(__dirname, 'server', 'index.js'),
+      cwd: __dirname,
+      env: {
+        NODE_ENV: 'production',
+        PORT: API_PORT,
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '200M',
+    },
+    {
       name: 'lucky-draw',
       script: 'npx',
-      args: 'serve -s dist -l 1168',
+      args: `serve -s dist -l ${FRONTEND_PORT}`,
       cwd: __dirname,
       env: {
         NODE_ENV: 'production',

@@ -1,9 +1,41 @@
+import React, { useState, useEffect, useCallback } from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import Login from "./components/Login";
+import { apiMe, type MeResponse } from "./services/api";
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
+const Root: React.FC = () => {
+  const [user, setUser] = useState<MeResponse | null | "loading">("loading");
 
-const rootElement = document.getElementById('root');
+  const checkAuth = useCallback(async () => {
+    try {
+      const me = await apiMe();
+      setUser(me ?? null);
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  if (user === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0f0a0a]">
+        <div className="text-white/50 font-orbitron uppercase tracking-widest">加载中…</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onSuccess={checkAuth} />;
+  }
+
+  return <App currentUser={user} onLogout={checkAuth} />;
+};
+
+const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
@@ -11,6 +43,6 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <Root />
   </React.StrictMode>
 );

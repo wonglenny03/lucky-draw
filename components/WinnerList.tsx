@@ -1,10 +1,25 @@
-
-import React from 'react';
-import { Winner } from '../types';
+import React from "react";
+import * as XLSX from "xlsx";
+import { Winner } from "../types";
 
 interface WinnerListProps {
   winners: Winner[];
   onClose: () => void;
+}
+
+function exportToExcel(winners: Winner[]) {
+  const rows = winners.map((w, idx) => ({
+    序号: idx + 1,
+    奖项: w.prize.name,
+    中奖者: w.participant.name,
+    抽奖时间: w.drawTime,
+    类型: w.isExtra ? "额外抽奖" : "常规",
+  }));
+  const sheet = XLSX.utils.json_to_sheet(rows);
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, "获奖名单");
+  const fileName = `获奖名单_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  XLSX.writeFile(book, fileName);
 }
 
 const WinnerList: React.FC<WinnerListProps> = ({ winners, onClose }) => {
@@ -57,16 +72,19 @@ const WinnerList: React.FC<WinnerListProps> = ({ winners, onClose }) => {
         </div>
         
         <div className="p-6 border-t border-white/10 bg-black/40">
-           <button 
-             onClick={() => {
-                const text = winners.map(w => `${w.isExtra ? '[额外] ' : ''}${w.prize.name}: ${w.participant.name}`).join('\n');
-                navigator.clipboard.writeText(text);
-                alert('已复制到剪贴板');
-             }}
-             className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl transition-colors text-sm font-bold"
-           >
-             导出名单 (复制文本)
-           </button>
+          <button
+            onClick={() => {
+              if (winners.length === 0) {
+                alert("暂无中奖记录，无法导出");
+                return;
+              }
+              exportToExcel(winners);
+              alert("已导出为 Excel 文件");
+            }}
+            className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl transition-colors text-sm font-bold"
+          >
+            导出为 Excel
+          </button>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Participant, Prize, Winner } from '../types';
 interface LuckyDrawProps {
   participants: Participant[];
   currentPrize?: Prize;
-  onDrawBulk: (winners: Participant[]) => Winner[];
+  onDrawBulk: (winners: Participant[]) => void | Promise<Winner[]>;
   winners: Winner[];
   isExtraMode?: boolean;
   onDrawStart?: () => void;

@@ -9,13 +9,19 @@ import {
   isIndexedDBMarker,
   type AudioKey,
 } from "./services/audioStorage"
+import {
+  apiGetDrawState,
+  apiPutDrawState,
+  apiDraw,
+  apiDrawReset,
+  apiResetToDefaultConfig,
+  apiLogout,
+} from "./services/api"
+import type { MeResponse } from "./services/api"
 
-const STORAGE_KEY = "ANNUAL_DRAW_DATA_V5"
 const DEFAULT_BACKGROUND_URL =
   "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80"
-// 默认抽奖进行时音效（项目内 Ongoing.mp3，可被用户在设置中上传覆盖）
 const DEFAULT_DRAW_MUSIC_URL = "/Ongoing.mp3"
-// 默认抽奖完成（揭晓）提示音（项目内 result.mp3，可被用户在设置中上传覆盖）
 const DEFAULT_WINNER_SOUND_URL = "/result.mp3"
 
 /** 是否为可播放的音频地址（http/https/blob/data），排除 IndexedDB 标记 */
@@ -26,82 +32,23 @@ function isPlayableAudioSrc(s: string | undefined): boolean {
   )
 }
 
-const INITIAL_PRIZES: Prize[] = [
-  {
-    id: "p1",
-    name: "一等奖 (iPhone 16 Pro Max)",
-    rank: 1,
-    count: 1,
-    remaining: 1,
-    image: "https://picsum.photos/seed/iphone/400/400",
-  },
-  {
-    id: "p2",
-    name: "二等奖 (iPad Air)",
-    rank: 2,
-    count: 3,
-    remaining: 3,
-    image: "https://picsum.photos/seed/ipad/400/400",
-  },
-  {
-    id: "p3",
-    name: "三等奖 (AirPods Pro)",
-    rank: 3,
-    count: 5,
-    remaining: 5,
-    image: "https://picsum.photos/seed/airpods/400/400",
-  },
-  {
-    id: "p4",
-    name: "参与奖 (幸运礼盒)",
-    rank: 4,
-    count: 10,
-    remaining: 10,
-    image: "https://picsum.photos/seed/box/400/400",
-  },
-]
+function normalizeState(parsed: AppState): AppState {
+  if (!parsed.allParticipants) parsed.allParticipants = [...parsed.participants]
+  if (!parsed.extraPrizes) parsed.extraPrizes = []
+  if (parsed.isExtraMode === undefined) parsed.isExtraMode = false
+  if (parsed.extraModeEnabled === undefined)
+    parsed.extraModeEnabled = parsed.isExtraMode
+  return parsed
+}
 
-const INITIAL_PARTICIPANTS: Participant[] = Array.from(
-  { length: 60 },
-  (_, i) => ({
-    id: `user-${i}`,
-    name: `员工 ${i + 1}`,
-    avatar: `https://picsum.photos/seed/user${i}/100/100`,
-  })
-)
+interface AppProps {
+  currentUser: MeResponse
+  onLogout: () => void
+}
 
-const App: React.FC = () => {
-  const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        if (!parsed.allParticipants)
-          parsed.allParticipants = [...parsed.participants]
-        if (!parsed.extraPrizes) parsed.extraPrizes = []
-        if (parsed.isExtraMode === undefined) parsed.isExtraMode = false
-        if (parsed.extraModeEnabled === undefined)
-          parsed.extraModeEnabled = parsed.isExtraMode
-        return parsed
-      } catch (e) {
-        console.error("Failed to parse stored state", e)
-      }
-    }
-    return {
-      participants: INITIAL_PARTICIPANTS,
-      allParticipants: INITIAL_PARTICIPANTS,
-      prizes: INITIAL_PRIZES,
-      extraPrizes: [],
-      winners: [],
-      currentPrizeId: INITIAL_PRIZES[0].id,
-      isExtraMode: false,
-      extraModeEnabled: false,
-      backgroundImage: undefined,
-      backgroundMusic: undefined,
-      drawMusic: undefined,
-      winnerSound: undefined,
-    }
-  })
+const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
+  const [state, setState] = useState<AppState | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const [showSetup, setShowSetup] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -113,6 +60,68 @@ const App: React.FC = () => {
   const drawAudioRef = useRef<HTMLAudioElement>(null)
   const winnerAudioRef = useRef<HTMLAudioElement>(null)
   const bgFadeRef = useRef<{ timeout?: number; interval?: number }>({})
+  const footerScrollRef = useRef<HTMLDivElement>(null)
+
+  const handleFooterWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    const el = footerScrollRef.current
+    if (!el || !e.shiftKey) return
+    e.preventDefault()
+    el.scrollLeft += e.deltaY
+  }, [])
+
+  const prizeList = state
+    ? state.isExtraMode
+      ? state.extraPrizes
+      : state.prizes
+    : []
+  const currentPrizeIndex =
+    state?.currentPrizeId != null
+      ? prizeList.findIndex((p) => p.id === state.currentPrizeId)
+      : -1
+  const canGoPrev = currentPrizeIndex > 0
+  const canGoNext = currentPrizeIndex >= 0 && currentPrizeIndex < prizeList.length - 1
+
+  const switchPrize = useCallback(
+    (direction: "prev" | "next") => {
+      if (!state || prizeList.length === 0) return
+      const idx = currentPrizeIndex
+      if (direction === "prev" && idx <= 0) return
+      if (direction === "next" && idx >= prizeList.length - 1) return
+      const nextIdx = direction === "prev" ? idx - 1 : idx + 1
+      const nextId = prizeList[nextIdx].id
+      setState((prev) => (prev ? { ...prev, currentPrizeId: nextId } : prev))
+      setLastDrawWinners([])
+    },
+    [state, prizeList, currentPrizeIndex]
+  )
+
+  // 选中项变更时滚动到可见
+  const currentPrizeId = state?.currentPrizeId
+  useEffect(() => {
+    const el = footerScrollRef.current
+    if (!el || !currentPrizeId) return
+    const target = el.querySelector(`[data-prize-id="${currentPrizeId}"]`) as HTMLElement | null
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+    }
+  }, [currentPrizeId])
+
+  // 从服务端加载当前用户的抽奖状态
+  useEffect(() => {
+    let cancelled = false
+    setLoadError(null)
+    apiGetDrawState()
+      .then((data) => {
+        if (!cancelled) setState(normalizeState(data))
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setLoadError(err instanceof Error ? err.message : "加载失败")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [currentUser.userId])
 
   useEffect(() => {
     return () => {
@@ -122,45 +131,11 @@ const App: React.FC = () => {
     }
   }, [])
 
-  // 持久化到 localStorage：音频不存 blob/data URL，只存“标记”或外链，实际文件在 IndexedDB
+  // 当 state 从服务端加载后，从 IndexedDB 恢复音频 blob URL（若有）
   useEffect(() => {
-    const toSave: AppState = { ...state }
-    const toMarker = (v: string | undefined, key: AudioKey) =>
-      v?.startsWith("blob:")
-        ? getMarker(key)
-        : v?.startsWith("data:")
-        ? undefined
-        : v
-    toSave.backgroundMusic = toMarker(state.backgroundMusic, "backgroundMusic")
-    toSave.drawMusic = toMarker(state.drawMusic, "drawMusic")
-    toSave.winnerSound = toMarker(state.winnerSound, "winnerSound")
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "QuotaExceededError") {
-        setTimeout(() => alert("本地存储空间不足，请清理后重试。"), 0)
-      } else {
-        throw e
-      }
-    }
-  }, [state])
-
-  // 启动时从 IndexedDB 加载已保存的音频，将标记替换为可播放的 blob URL
-  useEffect(() => {
+    if (!state) return
     const keys: AudioKey[] = ["backgroundMusic", "drawMusic", "winnerSound"]
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return
-    let parsed: AppState
-    try {
-      parsed = JSON.parse(saved)
-    } catch {
-      return
-    }
-    const markers = [
-      parsed.backgroundMusic,
-      parsed.drawMusic,
-      parsed.winnerSound,
-    ]
+    const markers = [state.backgroundMusic, state.drawMusic, state.winnerSound]
     const loads: Promise<{ key: AudioKey; url: string } | null>[] = []
     keys.forEach((key, i) => {
       if (isIndexedDBMarker(markers[i])) {
@@ -175,10 +150,10 @@ const App: React.FC = () => {
           if (r) updates[r.key] = r.url
         })
         if (Object.keys(updates).length)
-          setState((prev) => ({ ...prev, ...updates }))
+          setState((prev) => (prev ? { ...prev, ...updates } : prev))
       })
       .catch(console.error)
-  }, [])
+  }, [state?.participants?.length, state?.prizes?.length])
 
   const toggleMode = useCallback(() => {
     setState((prev) => {
@@ -196,50 +171,32 @@ const App: React.FC = () => {
   }, [])
 
   const handleDrawBulk = useCallback(
-    (selectedParticipants: Participant[]) => {
+    async (selectedParticipants: Participant[]) => {
+      if (!state) return []
       const activePrizes = state.isExtraMode ? state.extraPrizes : state.prizes
       const currentPrize = activePrizes.find(
-        (p) => p.id === state.currentPrizeId
+        (p) => p.id === state.currentPrizeId,
       )
-
       if (!currentPrize || selectedParticipants.length === 0) return []
-
-      const drawTime = new Date().toLocaleTimeString()
-
-      const newWinners: Winner[] = selectedParticipants.map((p) => ({
-        participant: p,
-        prize: { ...currentPrize },
-        drawTime,
-        isExtra: state.isExtraMode,
-      }))
-
-      setState((prev) => {
-        const updatePrizeList = (list: Prize[]) =>
-          list.map((p) =>
-            p.id === prev.currentPrizeId
-              ? { ...p, remaining: p.remaining - selectedParticipants.length }
-              : p
-          )
-
-        return {
-          ...prev,
-          winners: [...newWinners, ...prev.winners],
-          prizes: prev.isExtraMode ? prev.prizes : updatePrizeList(prev.prizes),
-          extraPrizes: prev.isExtraMode
-            ? updatePrizeList(prev.extraPrizes)
-            : prev.extraPrizes,
-          participants: prev.isExtraMode
-            ? prev.participants
-            : prev.participants.filter(
-                (p) => !selectedParticipants.find((sp) => sp.id === p.id)
-              ),
-        }
-      })
-
-      setLastDrawWinners(newWinners)
-      return newWinners
+      try {
+        const currentId = state.currentPrizeId
+        const { winners: newWinners, state: nextState } = await apiDraw({
+          currentPrizeId: state.currentPrizeId!,
+          isExtraMode: state.isExtraMode,
+          participantIds: selectedParticipants.map((p) => p.id),
+          prizeSnapshot: { ...currentPrize },
+        })
+        const normalized = normalizeState(nextState)
+        setState({ ...normalized, currentPrizeId: currentId ?? normalized.currentPrizeId })
+        setLastDrawWinners(newWinners)
+        return newWinners
+      } catch (e) {
+        console.error(e)
+        alert(e instanceof Error ? e.message : "抽奖请求失败")
+        return []
+      }
     },
-    [state.currentPrizeId, state.prizes, state.extraPrizes, state.isExtraMode]
+    [state],
   )
 
   const updateSettings = (
@@ -250,9 +207,9 @@ const App: React.FC = () => {
     backgroundImage?: string,
     backgroundMusic?: string,
     drawMusic?: string,
-    winnerSound?: string
+    winnerSound?: string,
   ) => {
-    // 1. Check for structural changes that MANDATE a reset
+    if (!state) return
     const participantsNames = (list: Participant[]) =>
       list
         .map((p) => p.name)
@@ -278,7 +235,7 @@ const App: React.FC = () => {
     if (needsReset) {
       if (
         !window.confirm(
-          "奖项配置或人员名单已更改。这将清空当前所有中奖记录并重置抽奖进度。确定保存并继续吗？"
+          "奖项配置或人员名单已更改。这将清空当前所有中奖记录并重置抽奖进度。确定保存并继续吗？",
         )
       )
         return
@@ -289,7 +246,7 @@ const App: React.FC = () => {
         remaining: p.count,
       }))
 
-      setState({
+      const nextState: AppState = {
         participants: newParticipants,
         allParticipants: newParticipants,
         prizes: updatedPrizes,
@@ -308,63 +265,95 @@ const App: React.FC = () => {
         drawMusic: drawMusic !== undefined ? drawMusic : state.drawMusic,
         winnerSound:
           winnerSound !== undefined ? winnerSound : state.winnerSound,
-      })
-    } else {
-      // 2. Minor changes: mode switch or enabling/disabling features without data reset
-      setState((prev) => {
-        const nextIsExtraMode = extraEnabled
-        const targetPrizes = nextIsExtraMode ? newExtraPrizes : newPrizes
-
-        let nextPrizeId = prev.currentPrizeId
-        // If the current prize doesn't exist in the active set anymore, select first available
-        if (!targetPrizes.some((p) => p.id === nextPrizeId)) {
-          nextPrizeId = targetPrizes[0]?.id || null
-        }
-
-        return {
-          ...prev,
-          prizes: newPrizes,
-          extraPrizes: newExtraPrizes,
-          allParticipants: newParticipants,
-          isExtraMode: nextIsExtraMode,
-          extraModeEnabled: extraEnabled,
-          currentPrizeId: nextPrizeId,
-          backgroundImage: backgroundImage ?? prev.backgroundImage,
-          backgroundMusic:
-            backgroundMusic !== undefined
-              ? backgroundMusic
-              : prev.backgroundMusic,
-          drawMusic: drawMusic !== undefined ? drawMusic : prev.drawMusic,
-          winnerSound:
-            winnerSound !== undefined ? winnerSound : prev.winnerSound,
-        }
-      })
+      }
+      const toMarker = (v: string | undefined, key: AudioKey) =>
+        v?.startsWith("blob:")
+          ? getMarker(key)
+          : v?.startsWith("data:")
+            ? undefined
+            : v
+      const toSave: AppState = {
+        ...nextState,
+        backgroundMusic: toMarker(nextState.backgroundMusic, "backgroundMusic"),
+        drawMusic: toMarker(nextState.drawMusic, "drawMusic"),
+        winnerSound: toMarker(nextState.winnerSound, "winnerSound"),
+      }
+      apiPutDrawState(toSave)
+        .then(() => {
+          setState(nextState)
+          setLastDrawWinners([])
+          setShowSetup(false)
+        })
+        .catch((e) => {
+          alert(e instanceof Error ? e.message : "保存失败")
+        })
+      return
     }
 
-    // Always clear the visual state and close modal
-    setLastDrawWinners([])
-    setShowSetup(false)
+    const nextIsExtraMode = extraEnabled
+    const targetPrizes = nextIsExtraMode ? newExtraPrizes : newPrizes
+    let nextPrizeId = state.currentPrizeId
+    if (!targetPrizes.some((p) => p.id === nextPrizeId)) {
+      nextPrizeId = targetPrizes[0]?.id || null
+    }
+
+    const nextState: AppState = {
+      ...state,
+      prizes: newPrizes,
+      extraPrizes: newExtraPrizes,
+      allParticipants: newParticipants,
+      isExtraMode: nextIsExtraMode,
+      extraModeEnabled: extraEnabled,
+      currentPrizeId: nextPrizeId,
+      backgroundImage: backgroundImage ?? state.backgroundImage,
+      backgroundMusic:
+        backgroundMusic !== undefined ? backgroundMusic : state.backgroundMusic,
+      drawMusic: drawMusic !== undefined ? drawMusic : state.drawMusic,
+      winnerSound: winnerSound !== undefined ? winnerSound : state.winnerSound,
+    }
+    const toMarker = (v: string | undefined, key: AudioKey) =>
+      v?.startsWith("blob:")
+        ? getMarker(key)
+        : v?.startsWith("data:")
+          ? undefined
+          : v
+    const toSave: AppState = {
+      ...nextState,
+      backgroundMusic: toMarker(nextState.backgroundMusic, "backgroundMusic"),
+      drawMusic: toMarker(nextState.drawMusic, "drawMusic"),
+      winnerSound: toMarker(nextState.winnerSound, "winnerSound"),
+    }
+    apiPutDrawState(toSave)
+      .then(() => {
+        setState(nextState)
+        setLastDrawWinners([])
+        setShowSetup(false)
+      })
+      .catch((e) => {
+        alert(e instanceof Error ? e.message : "保存失败")
+      })
   }
 
-  const handleResetDraw = useCallback(() => {
-    setState((prev) => {
-      const resetPrizes = prev.prizes.map((p) => ({ ...p, remaining: p.count }))
-      const resetExtraPrizes = prev.extraPrizes.map((p) => ({
-        ...p,
-        remaining: p.count,
-      }))
-      const targetPrizes = prev.isExtraMode ? resetExtraPrizes : resetPrizes
-      return {
-        ...prev,
-        winners: [],
-        prizes: resetPrizes,
-        extraPrizes: resetExtraPrizes,
-        participants: [...prev.allParticipants],
-        currentPrizeId: targetPrizes[0]?.id ?? null,
-      }
-    })
-    setLastDrawWinners([])
-    setShowSetup(false)
+  const handleResetDraw = useCallback(async () => {
+    try {
+      const nextState = await apiDrawReset()
+      setState(normalizeState(nextState))
+      setLastDrawWinners([])
+      setShowSetup(false)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "重置失败")
+    }
+  }, [])
+
+  const handleResetToDefault = useCallback(async () => {
+    try {
+      const nextState = await apiResetToDefaultConfig()
+      setState(normalizeState(nextState))
+      setLastDrawWinners([])
+      setShowSetup(false)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "恢复默认失败")
+    }
   }, [])
 
   const toggleBackgroundMusic = useCallback(() => {
@@ -388,10 +377,10 @@ const App: React.FC = () => {
     if (draw) {
       draw.src = state.drawMusic || DEFAULT_DRAW_MUSIC_URL
       draw.loop = true
-      draw.volume = 1
+      draw.volume = 0.6
       draw.play().catch(() => {})
     }
-  }, [state.drawMusic])
+  }, [state?.drawMusic])
 
   const onDrawEnd = useCallback(() => {
     const draw = drawAudioRef.current
@@ -429,28 +418,64 @@ const App: React.FC = () => {
     if (winner) {
       winner.src = state.winnerSound || DEFAULT_WINNER_SOUND_URL
       winner.loop = false
-      winner.volume = 1
+      winner.volume = 0.6
       winner.play().catch(() => {})
     }
-  }, [state.winnerSound])
+  }, [state?.winnerSound])
 
   const currentPrize = useMemo(() => {
+    if (!state) return undefined
     const list = state.isExtraMode ? state.extraPrizes : state.prizes
     return list.find((p) => p.id === state.currentPrizeId)
-  }, [state.prizes, state.extraPrizes, state.currentPrizeId, state.isExtraMode])
+  }, [
+    state?.prizes,
+    state?.extraPrizes,
+    state?.currentPrizeId,
+    state?.isExtraMode,
+  ])
 
   const activePool = useMemo(() => {
+    if (!state) return []
     if (!state.isExtraMode) return state.participants
     const extraWinnersIds = new Set(
-      state.winners.filter((w) => w.isExtra).map((w) => w.participant.id)
+      state.winners.filter((w) => w.isExtra).map((w) => w.participant.id),
     )
     return state.allParticipants.filter((p) => !extraWinnersIds.has(p.id))
   }, [
-    state.isExtraMode,
-    state.participants,
-    state.allParticipants,
-    state.winners,
+    state?.isExtraMode,
+    state?.participants,
+    state?.allParticipants,
+    state?.winners,
   ])
+
+  const handleLogout = useCallback(async () => {
+    await apiLogout()
+    onLogout()
+  }, [onLogout])
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f0a0a] gap-4">
+        <p className="text-red-400">{loadError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10"
+        >
+          重试
+        </button>
+      </div>
+    )
+  }
+
+  if (!state) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0f0a0a]">
+        <div className="text-white/50 font-orbitron uppercase tracking-widest">
+          加载抽奖数据…
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -573,6 +598,15 @@ const App: React.FC = () => {
           >
             ⚙️
           </button>
+          <span className="text-white/60 text-sm font-mono">
+            {currentUser.username}
+          </span>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 rounded-full border border-white/20 text-white/60 hover:text-white hover:bg-white/10 text-xs"
+          >
+            退出
+          </button>
         </div>
       </header>
 
@@ -606,23 +640,41 @@ const App: React.FC = () => {
       <audio ref={winnerAudioRef} className="hidden" />
 
       <footer
-        className={`h-32 flex items-center justify-center z-20 transition-all duration-500 relative ${
+        className={`min-h-[10rem] flex items-center justify-center z-20 transition-all duration-500 relative ${
           state.isExtraMode
             ? "bg-amber-950/20 border-t border-amber-500/20"
             : "bg-red-950/20 border-t border-red-500/20"
         }`}
       >
-        <div className="w-full max-w-[1200px] mx-auto px-8 overflow-x-auto scrollbar-hide">
-          <div className="flex items-center justify-start gap-4 h-full min-w-fit">
+        <button
+          type="button"
+          onClick={() => switchPrize("prev")}
+          disabled={!canGoPrev}
+          aria-label="上一项"
+          className={`absolute left-2 z-10 w-10 h-10 rounded-full flex items-center justify-center border transition-all shrink-0 disabled:opacity-40 disabled:pointer-events-none ${
+            state.isExtraMode
+              ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200"
+              : "border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-200"
+          }`}
+        >
+          ‹
+        </button>
+        <div
+          ref={footerScrollRef}
+          className="footer-prizes-scroll w-full max-w-[1000px] mx-auto px-12 py-5 overflow-x-auto overflow-y-hidden"
+          onWheel={handleFooterWheel}
+        >
+          <div className="flex items-center justify-start gap-4 min-h-[5.5rem] min-w-fit">
             {(state.isExtraMode ? state.extraPrizes : state.prizes).map(
               (prize) => (
                 <button
                   key={prize.id}
+                  data-prize-id={prize.id}
                   onClick={() => {
                     setState((prev) => ({ ...prev, currentPrizeId: prize.id }))
                     setLastDrawWinners([])
                   }}
-                  className={`flex flex-col items-center p-3 rounded-xl border transition-all min-w-[140px] flex-shrink-0 group ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all min-w-[140px] h-[5.5rem] flex-shrink-0 group ${
                     state.currentPrizeId === prize.id
                       ? state.isExtraMode
                         ? "bg-amber-500/20 border-amber-500 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.4)]"
@@ -655,10 +707,23 @@ const App: React.FC = () => {
                     />
                   </div>
                 </button>
-              )
+              ),
             )}
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => switchPrize("next")}
+          disabled={!canGoNext}
+          aria-label="下一项"
+          className={`absolute right-2 z-10 w-10 h-10 rounded-full flex items-center justify-center border transition-all shrink-0 disabled:opacity-40 disabled:pointer-events-none ${
+            state.isExtraMode
+              ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200"
+              : "border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-200"
+          }`}
+        >
+          ›
+        </button>
       </footer>
 
       {isSidebarOpen && (
@@ -674,6 +739,7 @@ const App: React.FC = () => {
           onSave={updateSettings}
           onClose={() => setShowSetup(false)}
           onReset={handleResetDraw}
+          onResetToDefault={handleResetToDefault}
         />
       )}
     </div>

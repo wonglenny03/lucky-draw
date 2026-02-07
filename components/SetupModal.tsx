@@ -6,6 +6,7 @@ import {
   isIndexedDBMarker,
   type AudioKey,
 } from "../services/audioStorage"
+import { apiUploadImage } from "../services/api"
 
 const DEFAULT_BACKGROUND_URL =
   "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80"
@@ -20,10 +21,12 @@ interface SetupModalProps {
     backgroundImage?: string,
     backgroundMusic?: string,
     drawMusic?: string,
-    winnerSound?: string
+    winnerSound?: string,
   ) => void
   onClose: () => void
   onReset?: () => void
+  /** 恢复为服务端默认奖项与人员（会保存到数据库并清空中奖记录） */
+  onResetToDefault?: () => void | Promise<void>
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -35,6 +38,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
   onSave,
   onClose,
   onReset,
+  onResetToDefault,
 }) => {
   const [activeTab, setActiveTab] = useState<
     "prizes" | "extra" | "participants" | "background" | "music"
@@ -45,24 +49,25 @@ const SetupModal: React.FC<SetupModalProps> = ({
     ...currentData.extraPrizes,
   ])
   const [isExtraModeEnabled, setIsExtraModeEnabled] = useState(
-    currentData.extraModeEnabled
+    currentData.extraModeEnabled,
   )
   const [participantInput, setParticipantInput] = useState(
-    currentData.allParticipants.map((p) => p.name).join("\n")
+    currentData.allParticipants.map((p) => p.name).join("\n"),
   )
   const [backgroundImage, setBackgroundImage] = useState<string>(
-    currentData.backgroundImage ?? ""
+    currentData.backgroundImage ?? "",
   )
   const [backgroundMusic, setBackgroundMusic] = useState<string>(
-    currentData.backgroundMusic ?? ""
+    currentData.backgroundMusic ?? "",
   )
   const [drawMusic, setDrawMusic] = useState<string>(
-    currentData.drawMusic ?? ""
+    currentData.drawMusic ?? "",
   )
   const [winnerSound, setWinnerSound] = useState<string>(
-    currentData.winnerSound ?? ""
+    currentData.winnerSound ?? "",
   )
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (!isExtraModeEnabled && activeTab === "extra") {
@@ -74,7 +79,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
   useEffect(() => {
     if (isIndexedDBMarker(currentData.backgroundMusic)) {
       getBlobURL("backgroundMusic").then(
-        (url) => url && setBackgroundMusic(url)
+        (url) => url && setBackgroundMusic(url),
       )
     } else {
       setBackgroundMusic(currentData.backgroundMusic ?? "")
@@ -115,7 +120,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
     id: string,
     field: keyof Prize,
     value: string | number,
-    isExtra: boolean
+    isExtra: boolean,
   ) => {
     const setter = isExtra ? setExtraPrizes : setPrizes
     setter((prev) =>
@@ -124,14 +129,14 @@ const SetupModal: React.FC<SetupModalProps> = ({
           return { ...p, [field]: value }
         }
         return p
-      })
+      }),
     )
   }
 
   const movePrize = (
     index: number,
     direction: "up" | "down",
-    isExtra: boolean
+    isExtra: boolean,
   ) => {
     const list = isExtra ? [...extraPrizes] : [...prizes]
     const setter = isExtra ? setExtraPrizes : setPrizes
@@ -171,7 +176,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
   const handleImageUpload = (
     id: string,
     isExtra: boolean,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setUploadError(null)
     const file = e.target.files?.[0]
@@ -187,17 +192,16 @@ const SetupModal: React.FC<SetupModalProps> = ({
       e.target.value = ""
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = reader.result as string
-      handlePrizeChange(id, "image", dataUrl, isExtra)
-      e.target.value = ""
-    }
-    reader.onerror = () => {
-      setUploadError("读取图片失败")
-      e.target.value = ""
-    }
-    reader.readAsDataURL(file)
+    e.target.value = ""
+    setUploading(true)
+    apiUploadImage(file)
+      .then((url) => {
+        handlePrizeChange(id, "image", url, isExtra)
+      })
+      .catch((err) => {
+        setUploadError(err instanceof Error ? err.message : "上传失败")
+      })
+      .finally(() => setUploading(false))
   }
 
   const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,22 +214,20 @@ const SetupModal: React.FC<SetupModalProps> = ({
       e.target.value = ""
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      setBackgroundImage(reader.result as string)
-      e.target.value = ""
-    }
-    reader.onerror = () => {
-      setUploadError("读取背景图失败")
-      e.target.value = ""
-    }
-    reader.readAsDataURL(file)
+    e.target.value = ""
+    setUploading(true)
+    apiUploadImage(file)
+      .then((url) => setBackgroundImage(url))
+      .catch((err) => {
+        setUploadError(err instanceof Error ? err.message : "上传背景图失败")
+      })
+      .finally(() => setUploading(false))
   }
 
   const handleMusicUpload = (
     key: AudioKey,
     setter: (v: string) => void,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setUploadError(null)
     const file = e.target.files?.[0]
@@ -268,7 +270,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
       backgroundImage.trim(),
       backgroundMusic.trim(),
       drawMusic.trim(),
-      winnerSound.trim()
+      winnerSound.trim(),
     )
   }
 
@@ -297,7 +299,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                 : "⚙️ 活动配置 (常规)"}
             </h2>
             <div className="h-6 w-[1px] bg-white/10"></div>
-            <label className="flex items-center gap-3 cursor-pointer group">
+            {/* <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 className={`w-12 h-6 rounded-full relative transition-all duration-300 ${
                   isExtraModeEnabled
@@ -324,7 +326,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               >
                 额外抽奖模式
               </span>
-            </label>
+            </label> */}
           </div>
           <button
             onClick={onClose}
@@ -388,27 +390,35 @@ const SetupModal: React.FC<SetupModalProps> = ({
             音乐
           </button>
         </div>
+        {(activeTab === "prizes" || activeTab === "extra") && (
+          <div className="px-6 py-3 mb-1 flex justify-between items-center flex-wrap gap-2 bg-[#111] border-b border-white/10">
+            <p className="text-sm text-white/40 italic flex-1 min-w-0">
+              {activeTab === "extra"
+                ? "配置秘密额外奖项。启用后，所有参与者将重新归队，不影响常规中奖记录。"
+                : "常规流程中的奖项。更改奖项或人员名单将强制重置进度以确保公平。"}
+            </p>
+            {activeTab === "prizes" && (
+              <span className="text-sm font-bold text-red-400/90 whitespace-nowrap">
+                奖品总数量：{prizes.reduce((sum, p) => sum + p.count, 0)}
+              </span>
+            )}
+            <button
+              onClick={() => addPrize(activeTab === "extra")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm ${
+                activeTab === "extra"
+                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                  : "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
+              }`}
+            >
+              + 添加奖项
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 p-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
           {(activeTab === "prizes" || activeTab === "extra") && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center mb-2">
-                <p className="text-sm text-white/40 italic">
-                  {activeTab === "extra"
-                    ? "配置秘密额外奖项。启用后，所有参与者将重新归队，不影响常规中奖记录。"
-                    : "常规流程中的奖项。更改奖项或人员名单将强制重置进度以确保公平。"}
-                </p>
-                <button
-                  onClick={() => addPrize(activeTab === "extra")}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm ${
-                    activeTab === "extra"
-                      ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-                      : "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
-                  }`}
-                >
-                  + 添加奖项
-                </button>
-              </div>
+              {uploading && <p className="text-xs text-amber-400">上传中…</p>}
               {uploadError && (
                 <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
                   {uploadError}
@@ -467,7 +477,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                               prize.id,
                               "name",
                               e.target.value,
-                              activeTab === "extra"
+                              activeTab === "extra",
                             )
                           }
                           className={`w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm outline-none transition-all ${
@@ -500,7 +510,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                               prize.id,
                               "count",
                               Math.max(1, parseInt(e.target.value) || 1),
-                              activeTab === "extra"
+                              activeTab === "extra",
                             )
                           }
                           className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-white/30"
@@ -520,7 +530,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                               handleImageUpload(
                                 prize.id,
                                 activeTab === "extra",
-                                e
+                                e,
                               )
                             }
                           />
@@ -552,7 +562,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                               prize.id,
                               "image",
                               e.target.value,
-                              activeTab === "extra"
+                              activeTab === "extra",
                             )
                           }
                           className="w-full mt-1.5 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-white/30"
@@ -560,7 +570,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                       </div>
                     </div>
                   </div>
-                )
+                ),
               )}
             </div>
           )}
@@ -599,6 +609,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               <p className="text-sm text-white/40 italic">
                 设置抽奖页全屏背景图，支持本地上传或填写图片链接。留空则使用默认背景。
               </p>
+              {uploading && <p className="text-xs text-amber-400">上传中…</p>}
               {uploadError && (
                 <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
                   {uploadError}
@@ -698,7 +709,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                         handleMusicUpload(
                           "backgroundMusic",
                           setBackgroundMusic,
-                          e
+                          e,
                         )
                       }
                     />
@@ -756,13 +767,16 @@ const SetupModal: React.FC<SetupModalProps> = ({
                 ? "✦ SECRET MODE ACTIVE ✦"
                 : "REGULAR MODE ACTIVE"}
             </p>
+            <p className="text-[10px] text-white/30">
+              奖项配置保存在服务器，不同用户互不影响。
+            </p>
             {onReset && (
               <button
                 type="button"
                 onClick={() => {
                   if (
                     window.confirm(
-                      "确定要重置抽奖吗？将清空所有中奖记录，并恢复各奖项剩余数量与人员池。此操作不可撤销。"
+                      "确定要重置抽奖吗？将清空所有中奖记录，并恢复各奖项剩余数量与人员池。此操作不可撤销。",
                     )
                   ) {
                     onReset()
@@ -771,6 +785,23 @@ const SetupModal: React.FC<SetupModalProps> = ({
                 className="px-4 py-2 rounded-xl text-white/60 hover:text-red-400 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-colors text-sm font-bold"
               >
                 重置抽奖
+              </button>
+            )}
+            {onResetToDefault && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "确定恢复为默认配置吗？奖项与人员将恢复为系统默认，并清空所有中奖记录。此操作不可撤销。",
+                    )
+                  ) {
+                    onResetToDefault()
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-colors text-sm font-bold"
+              >
+                恢复默认配置
               </button>
             )}
           </div>
