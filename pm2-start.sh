@@ -4,19 +4,21 @@
 #
 # 使用: chmod +x pm2-start.sh && ./pm2-start.sh
 #
+# 公网 API 地址（构建时写入前端）
+PUBLIC_API_BASE="${PUBLIC_API_BASE:-http://10.180.4.176:1167}"
+#
 # 环境变量（可选）:
-#   API_PORT        - 后端 API 端口，默认 1167
-#   FRONTEND_PORT   - 前端静态服务端口，默认 1168
-#   VITE_API_URL    - 前端请求的 API 地址（构建时写入），默认 http://localhost:1167
-#                     部署到公网时请设为实际地址，如 http://你的域名:1167
+#   API_PORT         - 后端 API 端口，默认 1167
+#   FRONTEND_PORT    - 前端静态服务端口，默认 1168
+#   VITE_API_URL     - 前端请求的 API 地址（构建时写入），默认使用 PUBLIC_API_BASE
+#   PUBLIC_API_BASE  - 公网 API 根地址，默认 http://10.180.4.176:1167
 
 set -e
 cd "$(dirname "$0")"
 
 API_PORT="${API_PORT:-1167}"
 FRONTEND_PORT="${FRONTEND_PORT:-1168}"
-# 构建时前端需要知道 API 地址，同机部署时用本机 + API 端口
-export VITE_API_URL="${VITE_API_URL:-http://localhost:${API_PORT}}"
+export VITE_API_URL="${VITE_API_URL:-${PUBLIC_API_BASE}}"
 
 echo ">>> 安装前端依赖..."
 npm install
