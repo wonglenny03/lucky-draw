@@ -69,7 +69,7 @@ chmod +x pm2-start.sh
 | `VITE_API_URL` | 前端请求的 API 地址（构建时写入） | `http://localhost:1167` |
 | `API_PORT` | 后端 API 监听端口（生产） | `1167` |
 | `FRONTEND_PORT` | 前端静态服务端口（生产） | `1168` |
-| `CORS_ORIGIN` | 允许的前端来源（CORS），多个用逗号分隔；不设时自动允许与 API 同 hostname 的任意端口 | 同机部署可不设 |
+| `CORS_ORIGIN` | 允许的前端来源（CORS），需与浏览器地址栏一致（含端口，如 `http://IP:1168`）；多个用逗号分隔。不设时自动允许与 API 同 hostname 的任意端口 | 同机部署可不设 |
 
 部署到公网服务器时，建议先设置 `VITE_API_URL` 为实际 API 地址再执行脚本，例如：
 
@@ -137,9 +137,10 @@ pm2 save      # 保存当前进程列表
 
 ### 故障排除：浏览器报 CORS 错误
 
-前端与 API 不同源（不同域名或端口）时，后端会校验请求的 `Origin`。默认会**自动允许与 API 同 hostname 的任意端口**（例如前端 `http://服务器IP:1168`、API `http://服务器IP:1167` 可正常访问）。若前端通过其他域名访问（如 CDN、反向代理后的域名），需在启动 API 时设置 `CORS_ORIGIN` 为前端访问地址，多个用逗号分隔，例如：
+前端与 API 不同源（不同域名或端口）时，后端会校验请求的 `Origin`。默认会**自动允许与 API 同 hostname 的任意端口**（例如前端 `http://服务器IP:1168`、API `http://服务器IP:1167` 可正常访问，**此时无需设置 CORS_ORIGIN**）。若前端通过其他域名访问（如 CDN、反向代理后的域名），需在启动 API 时设置 `CORS_ORIGIN` 为前端访问地址（必须与浏览器地址栏一致，含端口），多个用逗号分隔，例如：
 
 ```bash
 CORS_ORIGIN=https://your-frontend-domain.com pm2 start ecosystem.config.cjs
+# 若前端是 http://IP:1168，则：export CORS_ORIGIN=http://10.180.4.176:1168
 # 或在 pm2-start.sh 前：export CORS_ORIGIN=https://your-frontend-domain.com
 ```

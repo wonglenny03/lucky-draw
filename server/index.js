@@ -48,23 +48,39 @@ app.use(
   cors({
     origin(req, callback) {
       const origin = req.headers.origin;
-      const allowed = (process.env.CORS_ORIGIN || "")
+      const host = req.headers.host || "";
+      const corsOriginEnv = process.env.CORS_ORIGIN || "";
+      const allowed = corsOriginEnv
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+      let result = null;
       if (allowed.length > 0) {
-        if (origin && allowed.includes(origin)) return callback(null, origin);
-        return callback(null, false);
+        if (origin && allowed.includes(origin)) result = origin;
+        else result = false;
+      } else {
+        // 未配置 CORS_ORIGIN 时：允许与 API 同 hostname 的任意端口（前后端同机部署）
+        if (origin) {
+          try {
+            const apiHost = host.split(":")[0].replace(/^\[|\]$/g, "");
+            const originHost = new URL(origin).hostname.replace(/^\[|\]$/g, "");
+            if (apiHost && originHost && apiHost === originHost) result = origin;
+          } catch (_) {}
+        }
+        if (result === null)
+          result = process.env.NODE_ENV === "production" ? false : "http://localhost:3000";
       }
-      // 未配置 CORS_ORIGIN 时：允许与 API 同 hostname 的任意端口（前后端同机部署）
       if (origin) {
-        try {
-          const apiHost = (req.headers.host || "").split(":")[0];
-          const originHost = new URL(origin).hostname;
-          if (apiHost && originHost && apiHost === originHost) return callback(null, origin);
-        } catch (_) {}
+        console.log(
+          "[CORS] origin=%s host=%s CORS_ORIGIN=%s allowed=%s result=%s",
+          origin,
+          host,
+          corsOriginEnv || "(empty)",
+          allowed.length ? allowed.join(",") : "(same-host)",
+          result === false ? "deny" : result
+        );
       }
-      callback(null, process.env.NODE_ENV === "production" ? false : "http://localhost:3000");
+      callback(null, result);
     },
     credentials: true,
   })
