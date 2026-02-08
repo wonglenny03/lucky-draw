@@ -375,7 +375,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     }
     const draw = drawAudioRef.current
     if (draw) {
-      draw.src = state.drawMusic || DEFAULT_DRAW_MUSIC_URL
+      draw.src = state?.drawMusic || DEFAULT_DRAW_MUSIC_URL
       draw.loop = true
       draw.volume = 0.6
       draw.play().catch(() => {})
@@ -416,7 +416,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
     }
     const winner = winnerAudioRef.current
     if (winner) {
-      winner.src = state.winnerSound || DEFAULT_WINNER_SOUND_URL
+      winner.src = state?.winnerSound || DEFAULT_WINNER_SOUND_URL
       winner.loop = false
       winner.volume = 0.6
       winner.play().catch(() => {})
