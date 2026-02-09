@@ -135,6 +135,14 @@ pm2 save      # 保存当前进程列表
 - **用一键脚本部署**：`./pm2-start.sh` 已改为在安装前端依赖前清理 `node_modules` 与 `package-lock.json`，再执行 `npm install`，可避免该问题。
 - **手动构建**：在服务器项目根目录执行 `rm -rf node_modules package-lock.json && npm install`，再执行 `npm run build`。
 
+### 故障排除：访问接口超时
+
+后端 API 默认监听 `0.0.0.0`（接受所有网卡请求）。若仍超时，请检查：
+
+1. **防火墙 / 安全组**：确保 API 端口（默认 1167）对访问方开放。例如 EC2 安全组需添加入站规则放行 TCP 1167。
+2. **前端请求地址**：构建时设置的 `VITE_API_URL` 必须是浏览器能访问到的地址（例如公网 IP 或域名 + 端口）。若写成了内网地址或 localhost，浏览器会连不上或超时。
+3. **API 进程是否存活**：在服务器上执行 `pm2 list` 和 `pm2 logs lucky-draw-api`，确认 API 进程在运行且无报错。
+
 ### 故障排除：浏览器报 CORS 错误
 
 前端与 API 不同源（不同域名或端口）时，后端会校验请求的 `Origin`。默认会**自动允许与 API 同 hostname 的任意端口**（例如前端 `http://服务器IP:1168`、API `http://服务器IP:1167` 可正常访问，**此时无需设置 CORS_ORIGIN**）。若前端通过其他域名访问（如 CDN、反向代理后的域名），需在启动 API 时设置 `CORS_ORIGIN` 为前端访问地址（必须与浏览器地址栏一致，含端口），多个用逗号分隔，例如：

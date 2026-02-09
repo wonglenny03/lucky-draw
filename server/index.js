@@ -246,6 +246,7 @@ app.post("/api/draw-reset", requireAuth, (req, res) => {
   res.json(state);
 });
 
-app.listen(PORT, () => {
-  console.log(`Luck Draw API http://localhost:${PORT}`);
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`Luck Draw API http://${HOST}:${PORT}`);
 });

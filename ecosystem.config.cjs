@@ -19,7 +19,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: API_PORT,
-        CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://10.180.4.176:1168',
+        CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://16.162.3.49:1168',
       },
       instances: 1,
       autorestart: true,
