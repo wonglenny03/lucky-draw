@@ -284,14 +284,14 @@ const SetupModal: React.FC<SetupModalProps> = ({
         className={`relative w-full max-w-3xl bg-[#111] border rounded-3xl overflow-hidden flex flex-col animate-in zoom-in duration-300 shadow-2xl transition-colors duration-500 ${
           isExtraModeEnabled
             ? "border-amber-500/40 shadow-amber-500/10"
-            : "border-red-500/40 shadow-red-500/10"
+            : "border-amber-500/40 shadow-amber-500/10"
         }`}
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h2
               className={`text-2xl font-bold font-orbitron transition-colors ${
-                isExtraModeEnabled ? "text-amber-400" : "text-red-500"
+                isExtraModeEnabled ? "text-amber-400" : "text-amber-400"
               }`}
             >
               {isExtraModeEnabled
@@ -341,7 +341,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
             onClick={() => setActiveTab("prizes")}
             className={`flex-1 py-4 font-bold text-xs tracking-widest uppercase transition-all ${
               activeTab === "prizes"
-                ? "text-red-500 border-b-2 border-red-500 bg-white/5"
+                ? "text-amber-400 border-b-2 border-amber-500 bg-white/5"
                 : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -363,7 +363,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
             onClick={() => setActiveTab("participants")}
             className={`flex-1 py-4 font-bold text-xs tracking-widest uppercase transition-all ${
               activeTab === "participants"
-                ? "text-red-500 border-b-2 border-red-500 bg-white/5"
+                ? "text-amber-400 border-b-2 border-amber-500 bg-white/5"
                 : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -373,7 +373,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
             onClick={() => setActiveTab("background")}
             className={`flex-1 py-4 font-bold text-xs tracking-widest uppercase transition-all ${
               activeTab === "background"
-                ? "text-red-500 border-b-2 border-red-500 bg-white/5"
+                ? "text-amber-400 border-b-2 border-amber-500 bg-white/5"
                 : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -383,7 +383,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
             onClick={() => setActiveTab("music")}
             className={`flex-1 py-4 font-bold text-xs tracking-widest uppercase transition-all ${
               activeTab === "music"
-                ? "text-red-500 border-b-2 border-red-500 bg-white/5"
+                ? "text-amber-400 border-b-2 border-amber-500 bg-white/5"
                 : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -398,7 +398,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                 : "常规流程中的奖项。更改奖项或人员名单将强制重置进度以确保公平。"}
             </p>
             {activeTab === "prizes" && (
-              <span className="text-sm font-bold text-red-400/90 whitespace-nowrap">
+              <span className="text-sm font-bold text-amber-400/90 whitespace-nowrap">
                 奖品总数量：{prizes.reduce((sum, p) => sum + p.count, 0)}
               </span>
             )}
@@ -407,7 +407,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm ${
                 activeTab === "extra"
                   ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-                  : "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
               }`}
             >
               + 添加奖项
@@ -420,7 +420,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
             <div className="space-y-4">
               {uploading && <p className="text-xs text-amber-400">上传中…</p>}
               {uploadError && (
-                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
                   {uploadError}
                 </p>
               )}
@@ -441,7 +441,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                             movePrize(index, "up", activeTab === "extra")
                           }
                           disabled={index === 0}
-                          className="text-white/20 hover:text-red-500 disabled:opacity-0 px-2"
+                          className="text-white/20 hover:text-amber-400 disabled:opacity-0 px-2"
                         >
                           ▲
                         </button>
@@ -455,7 +455,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                               .length -
                               1
                           }
-                          className="text-white/20 hover:text-red-500 disabled:opacity-0 px-2"
+                          className="text-white/20 hover:text-amber-400 disabled:opacity-0 px-2"
                         >
                           ▼
                         </button>
@@ -483,7 +483,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                           className={`w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm outline-none transition-all ${
                             activeTab === "extra"
                               ? "focus:border-amber-500 focus:bg-amber-500/5"
-                              : "focus:border-red-500 focus:bg-red-500/5"
+                              : "focus:border-amber-500 focus:bg-amber-500/5"
                           }`}
                         />
                       </div>
@@ -491,7 +491,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                         onClick={() =>
                           deletePrize(prize.id, activeTab === "extra")
                         }
-                        className="p-2 text-white/30 hover:text-red-500 transition-colors"
+                        className="p-2 text-white/30 hover:text-amber-400 transition-colors"
                       >
                         🗑️
                       </button>
@@ -539,7 +539,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${
                               activeTab === "extra"
                                 ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-                                : "bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
+                                : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
                             }`}
                           >
                             本地上传
@@ -587,7 +587,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                   <span className="text-sm font-bold text-white/80">
                     当前人数:{" "}
                   </span>
-                  <span className="text-lg font-black text-red-500">
+                  <span className="text-lg font-black text-amber-400">
                     {
                       participantInput
                         .split("\n")
@@ -599,7 +599,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               <textarea
                 value={participantInput}
                 onChange={(e) => setParticipantInput(e.target.value)}
-                className="flex-1 min-h-[300px] w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none resize-none transition-all"
+                className="flex-1 min-h-[300px] w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-mono focus:border-amber-500 outline-none resize-none transition-all"
                 placeholder="张三&#10;李四&#10;王五..."
               />
             </div>
@@ -611,7 +611,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               </p>
               {uploading && <p className="text-xs text-amber-400">上传中…</p>}
               {uploadError && (
-                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
                   {uploadError}
                 </p>
               )}
@@ -643,7 +643,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                       />
                       <label
                         htmlFor="upload-background"
-                        className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer transition-all border bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
+                        className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer transition-all border bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
                       >
                         选择图片
                       </label>
@@ -666,14 +666,14 @@ const SetupModal: React.FC<SetupModalProps> = ({
                           : ""
                       }
                       onChange={(e) => setBackgroundImage(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500"
                     />
                   </div>
                   {backgroundImage && (
                     <button
                       type="button"
                       onClick={() => setBackgroundImage("")}
-                      className="text-xs text-white/50 hover:text-red-400 transition-colors"
+                      className="text-xs text-white/50 hover:text-amber-400 transition-colors"
                     >
                       清除背景图，恢复默认
                     </button>
@@ -690,7 +690,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                 IndexedDB，不占用 localStorage，支持较大文件。
               </p>
               {uploadError && (
-                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
                   {uploadError}
                 </p>
               )}
@@ -715,7 +715,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                     />
                     <label
                       htmlFor="upload-bg-music"
-                      className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer border bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20"
+                      className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer border bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
                     >
                       选择 MP3
                     </label>
@@ -728,7 +728,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setBackgroundMusic("")}
-                        className="text-xs text-white/50 hover:text-red-400"
+                        className="text-xs text-white/50 hover:text-amber-400"
                       >
                         清除
                       </button>
@@ -742,7 +742,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                     <input type="file" accept="audio/mpeg,audio/mp3,.mp3" className="hidden" id="upload-draw-music" onChange={(e) => handleMusicUpload('drawMusic', setDrawMusic, e)} />
                     <label htmlFor="upload-draw-music" className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer border bg-white/10 text-white/80 border-white/20 hover:bg-white/20">选择 MP3</label>
                     {drawMusic ? <span className="text-xs text-green-400">已设置</span> : <span className="text-xs text-amber-400/80">使用默认鼓点</span>}
-                    {drawMusic && <button type="button" onClick={() => setDrawMusic('')} className="text-xs text-white/50 hover:text-red-400">清除</button>}
+                    {drawMusic && <button type="button" onClick={() => setDrawMusic('')} className="text-xs text-white/50 hover:text-amber-400">清除</button>}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -752,7 +752,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
                     <input type="file" accept="audio/mpeg,audio/mp3,.mp3,audio/wav,audio/ogg" className="hidden" id="upload-winner-sound" onChange={(e) => handleMusicUpload('winnerSound', setWinnerSound, e)} />
                     <label htmlFor="upload-winner-sound" className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer border bg-white/10 text-white/80 border-white/20 hover:bg-white/20">选择音频</label>
                     {winnerSound ? <span className="text-xs text-green-400">已设置</span> : <span className="text-xs text-amber-400/80">使用默认揭晓音效</span>}
-                    {winnerSound && <button type="button" onClick={() => setWinnerSound('')} className="text-xs text-white/50 hover:text-red-400">清除</button>}
+                    {winnerSound && <button type="button" onClick={() => setWinnerSound('')} className="text-xs text-white/50 hover:text-amber-400">清除</button>}
                   </div>
                 </div> */}
               </div>
@@ -782,12 +782,12 @@ const SetupModal: React.FC<SetupModalProps> = ({
                     onReset()
                   }
                 }}
-                className="px-4 py-2 rounded-xl text-white/60 hover:text-red-400 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-colors text-sm font-bold"
+                className="px-4 py-2 rounded-xl text-white/60 hover:text-amber-400 hover:bg-amber-500/10 border border-white/10 hover:border-amber-500/30 transition-colors text-sm font-bold"
               >
                 重置抽奖
               </button>
             )}
-            {onResetToDefault && (
+            {/* {onResetToDefault && (
               <button
                 type="button"
                 onClick={() => {
@@ -803,7 +803,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               >
                 恢复默认配置
               </button>
-            )}
+            )} */}
           </div>
           <div className="flex gap-4 items-center">
             <button
@@ -817,7 +817,7 @@ const SetupModal: React.FC<SetupModalProps> = ({
               className={`px-8 py-3 font-black rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl text-xs uppercase tracking-[0.2em] ${
                 isExtraModeEnabled
                   ? "bg-amber-600 text-white shadow-amber-600/20"
-                  : "bg-red-500 text-white shadow-red-500/20"
+                  : "bg-amber-600 text-black shadow-amber-600/20"
               }`}
             >
               保存设置并返回

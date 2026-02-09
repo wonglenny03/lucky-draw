@@ -62,12 +62,15 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   const bgFadeRef = useRef<{ timeout?: number; interval?: number }>({})
   const footerScrollRef = useRef<HTMLDivElement>(null)
 
-  const handleFooterWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    const el = footerScrollRef.current
-    if (!el || !e.shiftKey) return
-    e.preventDefault()
-    el.scrollLeft += e.deltaY
-  }, [])
+  const handleFooterWheel = useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      const el = footerScrollRef.current
+      if (!el || !e.shiftKey) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    },
+    [],
+  )
 
   const prizeList = state
     ? state.isExtraMode
@@ -79,7 +82,8 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
       ? prizeList.findIndex((p) => p.id === state.currentPrizeId)
       : -1
   const canGoPrev = currentPrizeIndex > 0
-  const canGoNext = currentPrizeIndex >= 0 && currentPrizeIndex < prizeList.length - 1
+  const canGoNext =
+    currentPrizeIndex >= 0 && currentPrizeIndex < prizeList.length - 1
 
   const switchPrize = useCallback(
     (direction: "prev" | "next") => {
@@ -92,7 +96,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
       setState((prev) => (prev ? { ...prev, currentPrizeId: nextId } : prev))
       setLastDrawWinners([])
     },
-    [state, prizeList, currentPrizeIndex]
+    [state, prizeList, currentPrizeIndex],
   )
 
   // 选中项变更时滚动到可见
@@ -100,9 +104,15 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   useEffect(() => {
     const el = footerScrollRef.current
     if (!el || !currentPrizeId) return
-    const target = el.querySelector(`[data-prize-id="${currentPrizeId}"]`) as HTMLElement | null
+    const target = el.querySelector(
+      `[data-prize-id="${currentPrizeId}"]`,
+    ) as HTMLElement | null
     if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      })
     }
   }, [currentPrizeId])
 
@@ -187,7 +197,10 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
           prizeSnapshot: { ...currentPrize },
         })
         const normalized = normalizeState(nextState)
-        setState({ ...normalized, currentPrizeId: currentId ?? normalized.currentPrizeId })
+        setState({
+          ...normalized,
+          currentPrizeId: currentId ?? normalized.currentPrizeId,
+        })
         setLastDrawWinners(newWinners)
         return newWinners
       } catch (e) {
@@ -456,10 +469,10 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   if (loadError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f0a0a] gap-4">
-        <p className="text-red-400">{loadError}</p>
+        <p className="text-amber-400">{loadError}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10"
+          className="px-4 py-2 rounded-lg border border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
         >
           重试
         </button>
@@ -478,11 +491,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   }
 
   return (
-    <div
-      className={`min-h-screen relative flex flex-col overflow-hidden transition-colors duration-1000 ${
-        state.isExtraMode ? "bg-[#1a0f0a]" : "bg-[#0f0a0a]"
-      }`}
-    >
+    <div className="h-screen relative flex flex-col overflow-hidden transition-colors duration-1000 bg-[#0a0a0a]">
       {/* 全屏背景图片 */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {/* 背景图：提高不透明度和亮度，让图片清晰可见 */}
@@ -498,12 +507,11 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
           }}
         ></div>
         {/* 轻量渐变遮罩，保留氛围不压住背景 */}
-        <div className="absolute inset-0 bg-gradient-to-b from-red-950/25 via-red-900/15 to-red-950/30"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50"></div>
         {/* 金色光晕 */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[80%] bg-gradient-radial from-amber-500/10 via-transparent to-transparent"></div>
-        {/* 红色光晕 */}
-        <div className="absolute top-1/4 left-0 w-[50%] h-[50%] bg-gradient-radial from-red-600/12 via-transparent to-transparent"></div>
-        <div className="absolute bottom-1/4 right-0 w-[50%] h-[50%] bg-gradient-radial from-red-600/12 via-transparent to-transparent"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[80%] bg-gradient-radial from-amber-500/15 via-transparent to-transparent"></div>
+        <div className="absolute top-1/4 left-0 w-[50%] h-[50%] bg-gradient-radial from-amber-600/10 via-transparent to-transparent"></div>
+        <div className="absolute bottom-1/4 right-0 w-[50%] h-[50%] bg-gradient-radial from-amber-600/10 via-transparent to-transparent"></div>
       </div>
 
       {state.isExtraMode && (
@@ -515,10 +523,10 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
       )}
 
       <header
-        className={`h-20 flex items-center justify-between px-8 z-20 backdrop-blur-md border-b transition-colors relative ${
+        className={`h-20 flex-shrink-0 flex items-center justify-between px-8 z-20 backdrop-blur-md border-b transition-colors relative ${
           state.isExtraMode
-            ? "border-amber-500/30 bg-amber-900/10"
-            : "border-red-500/30 bg-red-950/20"
+            ? "border-amber-500/30 bg-black/30"
+            : "border-amber-500/30 bg-black/30"
         }`}
       >
         <div className="flex items-center gap-4">
@@ -526,17 +534,17 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl shadow-lg transition-all duration-500 ${
               state.isExtraMode
                 ? "bg-gradient-to-tr from-amber-500 to-yellow-400 scale-110 shadow-amber-500/50"
-                : "bg-gradient-to-tr from-red-500 to-red-700 shadow-red-500/30"
+                : "bg-gradient-to-tr from-amber-500 to-yellow-600 shadow-amber-500/40"
             }`}
           >
-            {state.isExtraMode ? "S" : "L"}
+            {state.isExtraMode ? "S" : "F"}
           </div>
           <div className="flex flex-col">
             <h1
               className={`text-2xl font-orbitron font-bold tracking-widest text-transparent bg-clip-text uppercase transition-all duration-500 ${
                 state.isExtraMode
                   ? "bg-gradient-to-r from-amber-400 via-white to-yellow-400"
-                  : "bg-gradient-to-r from-red-500 via-white to-red-600"
+                  : "bg-gradient-to-r from-amber-400 via-white to-yellow-500"
               }`}
             >
               {state.isExtraMode ? "Secret Extra Draw" : "Annual Gala 2026"}
@@ -557,7 +565,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
               className={`px-3 py-2 rounded-full border text-xs font-bold uppercase transition-all flex items-center gap-2 ${
                 state.isExtraMode
                   ? "border-amber-500/40 hover:bg-amber-500/20 text-amber-100"
-                  : "border-red-500/40 hover:bg-red-500/20 text-white"
+                  : "border-amber-500/40 hover:bg-amber-500/20 text-amber-100"
               }`}
               title={isBackgroundMusicPlaying ? "暂停背景音乐" : "播放背景音乐"}
             >
@@ -569,7 +577,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
               onClick={toggleMode}
               className={`px-4 py-2 rounded-full border text-xs font-bold tracking-widest uppercase transition-all flex items-center gap-2 group ${
                 state.isExtraMode
-                  ? "border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
                   : "border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
               }`}
             >
@@ -583,7 +591,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             className={`px-4 py-2 rounded-full border transition-all flex items-center gap-2 ${
               state.isExtraMode
                 ? "border-amber-500/40 hover:bg-amber-500/20 text-amber-100"
-                : "border-red-500/40 hover:bg-red-500/20 text-white"
+                : "border-amber-500/40 hover:bg-amber-500/20 text-amber-100"
             }`}
           >
             🏆 名单 ({state.winners.length})
@@ -593,7 +601,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
             className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all active:scale-95 ${
               state.isExtraMode
                 ? "border-amber-500/40 hover:bg-amber-500/20"
-                : "border-red-500/40 hover:bg-red-500/20"
+                : "border-amber-500/40 hover:bg-amber-500/20"
             }`}
           >
             ⚙️
@@ -610,7 +618,7 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
+      <main className="flex-1 min-h-0 flex flex-col items-center justify-center p-3 relative z-10 overflow-hidden">
         <LuckyDraw
           participants={activePool}
           currentPrize={currentPrize}
@@ -621,6 +629,73 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
           onDrawEnd={onDrawEnd}
         />
       </main>
+
+      <footer className="flex-shrink-0 min-h-[6rem] flex items-center justify-center z-20 transition-all duration-500 relative bg-black/30 border-t border-amber-500/20">
+        <button
+          type="button"
+          onClick={() => switchPrize("prev")}
+          disabled={!canGoPrev}
+          aria-label="上一项"
+          className="absolute left-6 z-10 w-16 h-16 rounded-full flex items-center justify-center border-2 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 text-3xl font-bold transition-all shrink-0 disabled:opacity-40 disabled:pointer-events-none"
+        >
+          ‹
+        </button>
+        <div
+          ref={footerScrollRef}
+          className="footer-prizes-scroll w-full max-w-[1200px] mx-auto px-12 py-6 overflow-x-auto overflow-y-hidden"
+          onWheel={handleFooterWheel}
+        >
+          <div className="flex items-center justify-start gap-4 min-h-[6rem] min-w-fit">
+            {(state.isExtraMode ? state.extraPrizes : state.prizes).map(
+              (prize) => (
+                <button
+                  key={prize.id}
+                  data-prize-id={prize.id}
+                  onClick={() => {
+                    setState((prev) => ({ ...prev, currentPrizeId: prize.id }))
+                    setLastDrawWinners([])
+                  }}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all min-w-[160px] h-[6rem] flex-shrink-0 group ${
+                    state.currentPrizeId === prize.id
+                      ? "bg-amber-500/20 border-amber-500 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+                      : "bg-black/40 border-white/10 hover:border-amber-500/30"
+                  }`}
+                >
+                  <span
+                    className={`text-base uppercase font-bold mb-1 transition-colors ${
+                      state.currentPrizeId === prize.id
+                        ? "text-white"
+                        : "text-white/40 group-hover:text-white/60"
+                    }`}
+                  >
+                    {prize.name}
+                  </span>
+                  <span className="font-bold text-sm truncate w-full text-center">
+                    {prize.remaining > 0 ? `剩 ${prize.remaining}` : "已完成"}
+                  </span>
+                  <div className="mt-2 h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-700 bg-amber-500"
+                      style={{
+                        width: `${(prize.remaining / prize.count) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => switchPrize("next")}
+          disabled={!canGoNext}
+          aria-label="下一项"
+          className="absolute right-6 z-10 w-16 h-16 rounded-full flex items-center justify-center border-2 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 text-3xl font-bold transition-all shrink-0 disabled:opacity-40 disabled:pointer-events-none"
+        >
+          ›
+        </button>
+      </footer>
 
       {/* 背景音乐：循环播放；抽奖/揭晓音效（blob URL 来自 IndexedDB） */}
       {isPlayableAudioSrc(state.backgroundMusic) && (
@@ -638,93 +713,6 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
       )}
       <audio ref={drawAudioRef} className="hidden" />
       <audio ref={winnerAudioRef} className="hidden" />
-
-      <footer
-        className={`min-h-[10rem] flex items-center justify-center z-20 transition-all duration-500 relative ${
-          state.isExtraMode
-            ? "bg-amber-950/20 border-t border-amber-500/20"
-            : "bg-red-950/20 border-t border-red-500/20"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => switchPrize("prev")}
-          disabled={!canGoPrev}
-          aria-label="上一项"
-          className={`absolute left-2 z-10 w-10 h-10 rounded-full flex items-center justify-center border transition-all shrink-0 disabled:opacity-40 disabled:pointer-events-none ${
-            state.isExtraMode
-              ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200"
-              : "border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-200"
-          }`}
-        >
-          ‹
-        </button>
-        <div
-          ref={footerScrollRef}
-          className="footer-prizes-scroll w-full max-w-[1000px] mx-auto px-12 py-5 overflow-x-auto overflow-y-hidden"
-          onWheel={handleFooterWheel}
-        >
-          <div className="flex items-center justify-start gap-4 min-h-[5.5rem] min-w-fit">
-            {(state.isExtraMode ? state.extraPrizes : state.prizes).map(
-              (prize) => (
-                <button
-                  key={prize.id}
-                  data-prize-id={prize.id}
-                  onClick={() => {
-                    setState((prev) => ({ ...prev, currentPrizeId: prize.id }))
-                    setLastDrawWinners([])
-                  }}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all min-w-[140px] h-[5.5rem] flex-shrink-0 group ${
-                    state.currentPrizeId === prize.id
-                      ? state.isExtraMode
-                        ? "bg-amber-500/20 border-amber-500 scale-110 shadow-[0_0_20px_rgba(245,158,11,0.4)]"
-                        : "bg-red-500/20 border-red-500 scale-110 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                      : "bg-black/40 border-white/10 hover:border-white/30"
-                  }`}
-                >
-                  <span
-                    className={`text-[10px] uppercase font-bold mb-1 transition-colors ${
-                      state.currentPrizeId === prize.id
-                        ? "text-white"
-                        : "text-white/40 group-hover:text-white/60"
-                    }`}
-                  >
-                    {prize.name}
-                  </span>
-                  <span className="font-bold text-sm truncate w-full text-center">
-                    {prize.remaining > 0 ? `剩 ${prize.remaining}` : "已完成"}
-                  </span>
-                  <div
-                    className={`mt-2 h-1 w-full rounded-full bg-white/10 overflow-hidden`}
-                  >
-                    <div
-                      className={`h-full transition-all duration-700 ${
-                        state.isExtraMode ? "bg-amber-500" : "bg-red-500"
-                      }`}
-                      style={{
-                        width: `${(prize.remaining / prize.count) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </button>
-              ),
-            )}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => switchPrize("next")}
-          disabled={!canGoNext}
-          aria-label="下一项"
-          className={`absolute right-2 z-10 w-10 h-10 rounded-full flex items-center justify-center border transition-all shrink-0 disabled:opacity-40 disabled:pointer-events-none ${
-            state.isExtraMode
-              ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200"
-              : "border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-200"
-          }`}
-        >
-          ›
-        </button>
-      </footer>
 
       {isSidebarOpen && (
         <WinnerList

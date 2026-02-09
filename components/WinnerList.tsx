@@ -31,7 +31,7 @@ const WinnerList: React.FC<WinnerListProps> = ({ winners, onClose }) => {
       />
       <div className="relative w-full max-w-md h-full bg-[#111] border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-2xl font-bold font-orbitron text-red-500">🏆 获奖记录</h2>
+          <h2 className="text-2xl font-bold font-orbitron text-amber-400">🏆 获奖记录</h2>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">✕</button>
         </div>
         
@@ -44,7 +44,7 @@ const WinnerList: React.FC<WinnerListProps> = ({ winners, onClose }) => {
             winners.map((winner, idx) => (
               <div 
                 key={idx} 
-                className={`bg-white/5 border p-4 rounded-xl flex items-center gap-4 group transition-colors ${winner.isExtra ? 'border-amber-500/30 hover:border-amber-500/60' : 'border-white/10 hover:border-red-500/50'}`}
+                className={`bg-white/5 border p-4 rounded-xl flex items-center gap-4 group transition-colors ${winner.isExtra ? 'border-amber-500/30 hover:border-amber-500/60' : 'border-white/10 hover:border-amber-500/40'}`}
               >
                 <div className="relative">
                   <img 
@@ -61,7 +61,7 @@ const WinnerList: React.FC<WinnerListProps> = ({ winners, onClose }) => {
                     <span className="font-bold truncate">{winner.participant.name}</span>
                     <span className="text-[10px] text-white/40">{winner.drawTime}</span>
                   </div>
-                  <div className={`text-xs font-bold uppercase tracking-wider ${winner.isExtra ? 'text-amber-400' : 'text-red-500/80'}`}>
+                  <div className={`text-xs font-bold uppercase tracking-wider ${winner.isExtra ? 'text-amber-400' : 'text-amber-400/90'}`}>
                     {winner.prize.name}
                     {winner.isExtra && <span className="ml-2 text-[8px] px-1 bg-amber-500/20 rounded">EXTRA</span>}
                   </div>

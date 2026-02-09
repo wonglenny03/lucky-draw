@@ -34,14 +34,14 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             "url('https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&q=80')",
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-red-950/40 via-transparent to-red-950/40" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50" />
       <div className="relative z-10 w-full max-w-md px-6">
-        <div className="bg-black/60 backdrop-blur-xl border border-red-500/30 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-black/60 backdrop-blur-xl border border-amber-500/30 rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-red-500 to-red-700 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4 shadow-lg shadow-red-500/30">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-600 flex items-center justify-center text-2xl font-bold text-black mx-auto mb-4 shadow-lg shadow-amber-500/40">
               L
             </div>
-            <h1 className="text-2xl font-orbitron font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-white to-red-600">
+            <h1 className="text-2xl font-orbitron font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-white to-yellow-500">
               Annual Gala 抽奖
             </h1>
             <p className="text-white/50 text-sm mt-2 uppercase tracking-widest">
@@ -50,7 +50,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
           </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+              <div className="text-amber-400 text-sm bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
                 {error}
               </div>
             )}
@@ -63,7 +63,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="用户名"
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-red-500 focus:outline-none transition-colors"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-amber-500 focus:outline-none transition-colors"
                 autoComplete="username"
                 required
               />
@@ -77,7 +77,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="密码"
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-red-500 focus:outline-none transition-colors"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-amber-500 focus:outline-none transition-colors"
                 autoComplete="current-password"
                 required
               />
@@ -85,7 +85,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-bold rounded-xl uppercase tracking-widest transition-all shadow-lg shadow-red-500/30 hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full py-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black font-bold rounded-xl uppercase tracking-widest transition-all shadow-lg shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98]"
             >
               {loading ? "登录中…" : "登录"}
             </button>
