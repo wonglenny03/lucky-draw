@@ -91,7 +91,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      // 不设置 maxAge，使用 session cookie（关闭浏览器后失效）；若需长期有效可设极大值如 10 年
       sameSite: "lax",
     },
   })

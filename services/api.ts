@@ -1,6 +1,12 @@
 // 开发时用相对路径走 Vite 代理；生产环境需配置 VITE_API_URL
 const API_BASE = ((import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL) ?? "";
 
+/** 收到 401 时调用，用于自动退出到登录页 */
+let onUnauthorized: (() => void) | null = null;
+export function setOnUnauthorized(cb: () => void): void {
+  onUnauthorized = cb;
+}
+
 function getOptions(method: string, body?: unknown): RequestInit {
   const opts: RequestInit = {
     method,
@@ -18,7 +24,10 @@ export interface MeResponse {
 
 export async function apiMe(): Promise<MeResponse | null> {
   const res = await fetch(`${API_BASE}/api/me`, getOptions("GET"));
-  if (res.status === 401) return null;
+  if (res.status === 401) {
+    onUnauthorized?.();
+    return null;
+  }
   if (!res.ok) throw new Error("获取用户信息失败");
   return res.json();
 }
@@ -37,14 +46,20 @@ export async function apiLogout(): Promise<void> {
 
 export async function apiGetDrawState(): Promise<import("../types").AppState> {
   const res = await fetch(`${API_BASE}/api/draw-state`, getOptions("GET"));
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) throw new Error("获取抽奖状态失败");
   return res.json();
 }
 
 export async function apiPutDrawState(state: import("../types").AppState): Promise<void> {
   const res = await fetch(`${API_BASE}/api/draw-state`, getOptions("PUT", state));
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) throw new Error("保存失败");
 }
 
@@ -60,7 +75,10 @@ export async function apiDraw(params: {
   prizeSnapshot: import("../types").Prize;
 }): Promise<DrawResponse> {
   const res = await fetch(`${API_BASE}/api/draw`, getOptions("POST", params));
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "抽奖失败");
@@ -70,7 +88,10 @@ export async function apiDraw(params: {
 
 export async function apiDrawReset(): Promise<import("../types").AppState> {
   const res = await fetch(`${API_BASE}/api/draw-reset`, getOptions("POST"));
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) throw new Error("重置失败");
   return res.json();
 }
@@ -78,7 +99,10 @@ export async function apiDrawReset(): Promise<import("../types").AppState> {
 /** 获取服务端默认配置（奖项 + 人员） */
 export async function apiGetDefaultConfig(): Promise<import("../types").AppState> {
   const res = await fetch(`${API_BASE}/api/default-config`, getOptions("GET"));
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) throw new Error("获取默认配置失败");
   return res.json();
 }
@@ -86,7 +110,10 @@ export async function apiGetDefaultConfig(): Promise<import("../types").AppState
 /** 恢复为默认配置并保存到数据库（奖项、人员重置，中奖记录清空） */
 export async function apiResetToDefaultConfig(): Promise<import("../types").AppState> {
   const res = await fetch(`${API_BASE}/api/draw-reset-to-default`, getOptions("POST"));
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) throw new Error("恢复默认失败");
   return res.json();
 }
@@ -100,7 +127,10 @@ export async function apiUploadImage(file: File): Promise<string> {
     credentials: "include",
     body: form,
   });
-  if (res.status === 401) throw new Error("未登录");
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("未登录");
+  }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "上传失败");

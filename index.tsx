@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import Login from "./components/Login";
-import { apiMe, type MeResponse } from "./services/api";
+import { apiMe, setOnUnauthorized, type MeResponse } from "./services/api";
 
 const Root: React.FC = () => {
   const [user, setUser] = useState<MeResponse | null | "loading">("loading");
@@ -19,6 +19,11 @@ const Root: React.FC = () => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // 任意接口返回 401 时自动退出到登录页
+  useEffect(() => {
+    setOnUnauthorized(() => setUser(null));
+  }, []);
 
   if (user === "loading") {
     return (
