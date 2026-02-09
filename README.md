@@ -66,7 +66,7 @@ chmod +x pm2-start.sh
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
-| `VITE_API_URL` | 前端请求的 API 地址（构建时写入） | `http://localhost:1167` |
+| `VITE_API_URL` | 前端请求的 API 地址（构建时写入） | 脚本默认 `http://16.162.3.49:1167`，可设 `PUBLIC_API_BASE` 覆盖 |
 | `API_PORT` | 后端 API 监听端口（生产） | `1167` |
 | `FRONTEND_PORT` | 前端静态服务端口（生产） | `1168` |
 | `CORS_ORIGIN` | 允许的前端来源（CORS），需与浏览器地址栏一致（含端口，如 `http://IP:1168`）；多个用逗号分隔。不设时自动允许与 API 同 hostname 的任意端口 | 同机部署可不设 |
@@ -149,6 +149,6 @@ pm2 save      # 保存当前进程列表
 
 ```bash
 CORS_ORIGIN=https://your-frontend-domain.com pm2 start ecosystem.config.cjs
-# 若前端是 http://IP:1168，则：export CORS_ORIGIN=http://10.180.4.176:1168
+# 若前端是 http://公网IP:1168，则：export CORS_ORIGIN=http://16.162.3.49:1168
 # 或在 pm2-start.sh 前：export CORS_ORIGIN=https://your-frontend-domain.com
 ```

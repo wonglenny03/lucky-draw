@@ -4,14 +4,14 @@
 #
 # 使用: chmod +x pm2-start.sh && ./pm2-start.sh
 #
-# 公网 API 地址（构建时写入前端）
-PUBLIC_API_BASE="${PUBLIC_API_BASE:-http://10.180.4.176:1167}"
+# 公网 API 地址（构建时写入前端，浏览器用此地址请求接口）
+PUBLIC_API_BASE="${PUBLIC_API_BASE:-http://16.162.3.49:1167}"
 #
 # 环境变量（可选）:
 #   API_PORT         - 后端 API 端口，默认 1167
 #   FRONTEND_PORT    - 前端静态服务端口，默认 1168
 #   VITE_API_URL     - 前端请求的 API 地址（构建时写入），默认使用 PUBLIC_API_BASE
-#   PUBLIC_API_BASE  - 公网 API 根地址，默认 http://10.180.4.176:1167
+#   PUBLIC_API_BASE  - 公网 API 根地址，默认 http://16.162.3.49:1167
 
 set -e
 cd "$(dirname "$0")"
