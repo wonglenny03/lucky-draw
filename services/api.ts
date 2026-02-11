@@ -71,8 +71,6 @@ export interface DrawResponse {
 export async function apiDraw(params: {
   currentPrizeId: string;
   isExtraMode: boolean;
-  participantIds: string[];
-  prizeSnapshot: import("../types").Prize;
 }): Promise<DrawResponse> {
   const res = await fetch(`${API_BASE}/api/draw`, getOptions("POST", params));
   if (res.status === 401) {

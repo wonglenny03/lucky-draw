@@ -182,10 +182,20 @@ app.put("/api/draw-state", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// 执行一次抽奖（服务端计算中奖者并更新状态）
+// 洗牌（Fisher-Yates），服务端随机抽奖用
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 执行一次抽奖（服务端随机选出中奖者并更新状态）
 app.post("/api/draw", requireAuth, (req, res) => {
-  const { currentPrizeId, isExtraMode, participantIds, prizeSnapshot } = req.body || {};
-  if (!currentPrizeId || !Array.isArray(participantIds) || participantIds.length === 0) {
+  const { currentPrizeId, isExtraMode } = req.body || {};
+  if (!currentPrizeId) {
     return res.status(400).json({ error: "参数错误" });
   }
   let state = getOrCreateDrawState(req.session.userId);
@@ -194,16 +204,18 @@ app.post("/api/draw", requireAuth, (req, res) => {
   if (!currentPrize) {
     return res.status(400).json({ error: "奖项不存在" });
   }
-  const participants = state.isExtraMode
-    ? state.allParticipants.filter((p) => participantIds.includes(p.id))
-    : state.participants.filter((p) => participantIds.includes(p.id));
-  if (participants.length === 0) {
-    return res.status(400).json({ error: "参与者无效" });
+  const pool = state.isExtraMode ? state.allParticipants : state.participants;
+  const countToDraw = Math.min(currentPrize.remaining, pool.length);
+  if (countToDraw <= 0) {
+    return res.status(400).json({ error: "该奖项无可抽名额或候选池为空" });
   }
+  const shuffled = shuffle(pool);
+  const selectedParticipants = shuffled.slice(0, countToDraw);
   const drawTime = new Date().toLocaleTimeString();
-  const newWinners = participants.map((p) => ({
+  const prizeSnapshot = { ...currentPrize };
+  const newWinners = selectedParticipants.map((p) => ({
     participant: p,
-    prize: prizeSnapshot || { ...currentPrize },
+    prize: prizeSnapshot,
     drawTime,
     isExtra: !!state.isExtraMode,
   }));
@@ -211,9 +223,10 @@ app.post("/api/draw", requireAuth, (req, res) => {
   const updatePrizeList = (list) =>
     list.map((p) =>
       p.id === currentPrizeId
-        ? { ...p, remaining: p.remaining - participants.length }
+        ? { ...p, remaining: p.remaining - selectedParticipants.length }
         : p
     );
+  const winnerIds = selectedParticipants.map((p) => p.id);
 
   state = {
     ...state,
@@ -222,7 +235,7 @@ app.post("/api/draw", requireAuth, (req, res) => {
     extraPrizes: state.isExtraMode ? updatePrizeList(state.extraPrizes) : state.extraPrizes,
     participants: state.isExtraMode
       ? state.participants
-      : state.participants.filter((p) => !participantIds.includes(p.id)),
+      : state.participants.filter((p) => !winnerIds.includes(p.id)),
   };
   saveDrawState(req.session.userId, state);
   res.json({ winners: newWinners, state });

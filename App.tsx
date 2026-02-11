@@ -181,20 +181,17 @@ const App: React.FC<AppProps> = ({ currentUser, onLogout }) => {
   }, [])
 
   const handleDrawBulk = useCallback(
-    async (selectedParticipants: Participant[]) => {
+    async (): Promise<Winner[]> => {
       if (!state) return []
-      const activePrizes = state.isExtraMode ? state.extraPrizes : state.prizes
-      const currentPrize = activePrizes.find(
+      const currentPrize = (state.isExtraMode ? state.extraPrizes : state.prizes).find(
         (p) => p.id === state.currentPrizeId,
       )
-      if (!currentPrize || selectedParticipants.length === 0) return []
+      if (!currentPrize) return []
       try {
         const currentId = state.currentPrizeId
         const { winners: newWinners, state: nextState } = await apiDraw({
           currentPrizeId: state.currentPrizeId!,
           isExtraMode: state.isExtraMode,
-          participantIds: selectedParticipants.map((p) => p.id),
-          prizeSnapshot: { ...currentPrize },
         })
         const normalized = normalizeState(nextState)
         setState({

@@ -4,7 +4,7 @@ import { Participant, Prize, Winner } from "../types"
 interface LuckyDrawProps {
   participants: Participant[]
   currentPrize?: Prize
-  onDrawBulk: (winners: Participant[]) => void | Promise<Winner[]>
+  onDrawBulk: () => void | Promise<Winner[]>
   winners: Winner[]
   isExtraMode?: boolean
   onDrawStart?: () => void
@@ -70,7 +70,7 @@ const LuckyDraw: React.FC<LuckyDrawProps> = ({
     }, 60)
   }, [isRolling, participants, currentPrize, onDrawStart])
 
-  const stopRolling = useCallback(() => {
+  const stopRolling = useCallback(async () => {
     if (!isRolling || !currentPrize) return
 
     if (rollIntervalRef.current) clearInterval(rollIntervalRef.current)
@@ -79,11 +79,8 @@ const LuckyDraw: React.FC<LuckyDrawProps> = ({
     // 立即停止抽奖音乐、恢复背景音量并播放揭晓音效（提前播，不等名单动画结束）
     onDrawEnd?.()
 
-    const countToDraw = Math.min(currentPrize.remaining, participants.length)
-    const shuffled = [...participants].sort(() => 0.5 - Math.random())
-    const selectedParticipants = shuffled.slice(0, countToDraw)
-
-    onDrawBulk(selectedParticipants)
+    // 由服务端随机抽选并返回中奖名单
+    const newWinners = await onDrawBulk()
 
     // 庆祝全屏撒花
     // @ts-ignore
@@ -95,16 +92,10 @@ const LuckyDraw: React.FC<LuckyDrawProps> = ({
     })
 
     // 按 400ms 每个人的步长计算名单动画结束时间，仅用于“本轮揭晓完毕”提示
-    const revealDelay = selectedParticipants.length * 400 + 500
+    const count = Array.isArray(newWinners) ? newWinners.length : 0
+    const revealDelay = count * 400 + 500
     setTimeout(() => setRevealFinished(true), revealDelay)
-  }, [
-    isRolling,
-    participants,
-    currentPrize,
-    onDrawBulk,
-    isExtraMode,
-    onDrawEnd,
-  ])
+  }, [isRolling, currentPrize, onDrawBulk, onDrawEnd])
 
   return (
     <div className="w-full max-w-6xl h-full max-h-full flex flex-col items-center justify-center gap-2 min-h-0">
